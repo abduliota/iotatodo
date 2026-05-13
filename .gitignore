@@ -1,0 +1,56 @@
+# dependencies
+/node_modules
+/.pnp
+.pnp.js
+
+# next.js
+/.next/
+/out/
+
+# production
+/build
+
+# environment variables
+.env
+.env.local
+.env.development.local
+.env.test.local
+.env.production.local
+
+# logs
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+
+# macOS
+.DS_Store
+
+# vscode
+.vscode/*
+
+# idea
+.idea/
+
+# typescript
+*.tsbuildinfo
+next-env.d.ts
+
+# coverage
+/coverage
+
+# misc
+*.pem
+
+# turbo
+.turbo
+
+# vercel
+.vercel
+
+# local databases
+*.sqlite
+
+# temp
+tmp/
+temp/

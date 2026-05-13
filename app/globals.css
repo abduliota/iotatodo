@@ -1,0 +1,92 @@
+@import url('https://fonts.googleapis.com/css2?family=DM+Sans:ital,opsz,wght@0,9..40,300;0,9..40,400;0,9..40,500;0,9..40,600;0,9..40,700;1,9..40,400&family=DM+Mono:wght@400;500&display=swap');
+
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  --navy:     #0D1B2A;
+  --navy-50:  #1a2d42;
+  --navy-100: #162435;
+  --blue:     #1E6FD9;
+  --blue-50:  #EAF1FB;
+  --teal:     #00C2CB;
+  --sidebar-w: 240px;
+}
+
+* { box-sizing: border-box; }
+
+html, body {
+  height: 100%;
+  background: var(--navy);
+  color: #e2e8f0;
+  font-family: 'DM Sans', system-ui, sans-serif;
+  -webkit-font-smoothing: antialiased;
+}
+
+/* ── Scrollbar ───────────────────────────────────────────── */
+::-webkit-scrollbar       { width: 6px; height: 6px; }
+::-webkit-scrollbar-track { background: transparent; }
+::-webkit-scrollbar-thumb { background: #334155; border-radius: 3px; }
+::-webkit-scrollbar-thumb:hover { background: #475569; }
+
+/* ── Kanban column ───────────────────────────────────────── */
+.kanban-col {
+  min-height: 200px;
+  transition: background 0.15s ease;
+}
+.kanban-col.drag-over {
+  background: rgba(30, 111, 217, 0.08);
+}
+
+/* ── Task card drag ──────────────────────────────────────── */
+.task-card {
+  transition: box-shadow 0.15s ease, transform 0.1s ease;
+  cursor: grab;
+}
+.task-card:active { cursor: grabbing; }
+.task-card.dragging {
+  opacity: 0.4;
+  transform: scale(0.98);
+}
+
+/* ── Priority indicator bar ──────────────────────────────── */
+.priority-bar {
+  position: absolute;
+  left: 0; top: 0; bottom: 0;
+  width: 3px;
+  border-radius: 8px 0 0 8px;
+}
+
+/* ── Focus ring ──────────────────────────────────────────── */
+:focus-visible {
+  outline: 2px solid var(--teal);
+  outline-offset: 2px;
+}
+
+/* ── Fade overlay for modals ─────────────────────────────── */
+.modal-overlay {
+  backdrop-filter: blur(4px);
+  -webkit-backdrop-filter: blur(4px);
+}
+
+/* ── Gradient mesh bg ────────────────────────────────────── */
+.mesh-bg {
+  background:
+    radial-gradient(ellipse at 20% 20%, rgba(30,111,217,0.08) 0%, transparent 60%),
+    radial-gradient(ellipse at 80% 80%, rgba(0,194,203,0.05) 0%, transparent 60%),
+    var(--navy);
+}
+
+/* ── Stat card hover ─────────────────────────────────────── */
+.stat-card {
+  transition: transform 0.15s ease, box-shadow 0.15s ease;
+}
+.stat-card:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 8px 32px rgba(0,0,0,0.3);
+}
+
+@layer utilities {
+  .font-mono { font-family: 'DM Mono', monospace; }
+}

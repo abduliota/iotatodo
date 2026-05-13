@@ -1,46 +1,11 @@
 import type { NextAuthOptions } from "next-auth";
 
-const useSecureCookies = process.env.NEXTAUTH_URL?.startsWith("https://");
-const cookiePrefix   = useSecureCookies ? "__Secure-" : "";
-const hostName       = process.env.NEXTAUTH_URL
-  ? new URL(process.env.NEXTAUTH_URL).hostname
-  : "localhost";
-
 export const authOptions: NextAuthOptions = {
   secret: process.env.NEXTAUTH_SECRET,
   session: { strategy: "jwt" },
-  pages:   { signIn: "/login" },
+  pages: { signIn: "/login", error: "/login" },
 
-  // ── Explicit cookie config for HTTPS / Render ─────────────────────────────
-  cookies: {
-    sessionToken: {
-      name: `${cookiePrefix}next-auth.session-token`,
-      options: {
-        httpOnly: true,
-        sameSite: "lax",
-        path:     "/",
-        secure:   useSecureCookies,
-        domain:   hostName === "localhost" ? undefined : hostName,
-      },
-    },
-    callbackUrl: {
-      name: `${cookiePrefix}next-auth.callback-url`,
-      options: {
-        sameSite: "lax",
-        path:     "/",
-        secure:   useSecureCookies,
-      },
-    },
-    csrfToken: {
-      name: `next-auth.csrf-token`,
-      options: {
-        httpOnly: true,
-        sameSite: "lax",
-        path:     "/",
-        secure:   useSecureCookies,
-      },
-    },
-  },
+  debug: true, // logs everything to Render console
 
   providers: [
     {
@@ -60,21 +25,43 @@ export const authOptions: NextAuthOptions = {
         },
       },
 
-      token: "https://auth.atlassian.com/oauth/token",
+      token: {
+        url: "https://auth.atlassian.com/oauth/token",
+        async request({ client, params, checks, provider }) {
+          console.log("[NextAuth] Exchanging code for token...");
+          console.log("[NextAuth] params:", JSON.stringify(params));
+          try {
+            const response = await client.oauthCallback(
+              provider.callbackUrl,
+              params,
+              checks,
+              { exchangeBody: { audience: "api.atlassian.com" } }
+            );
+            console.log("[NextAuth] Token exchange success");
+            return { tokens: response };
+          } catch (err: any) {
+            console.error("[NextAuth] Token exchange FAILED:", err?.message ?? err);
+            throw err;
+          }
+        },
+      },
 
       userinfo: {
         url: "https://api.atlassian.com/me",
         async request({ tokens }) {
+          console.log("[NextAuth] Fetching userinfo...");
           const res = await fetch("https://api.atlassian.com/me", {
             headers: { Authorization: `Bearer ${tokens.access_token}` },
           });
-          return res.json();
+          const data = await res.json();
+          console.log("[NextAuth] Userinfo:", JSON.stringify(data));
+          return data;
         },
       },
 
       profile(profile) {
         return {
-          id:    profile.account_id,
+          id:    profile.account_id ?? profile.sub ?? "unknown",
           name:  profile.name          ?? profile.display_name ?? "User",
           email: profile.email         ?? "",
           image: profile.picture       ?? profile.avatar_url   ?? "",
@@ -84,16 +71,19 @@ export const authOptions: NextAuthOptions = {
   ],
 
   callbacks: {
+    async signIn({ user, account }) {
+      console.log("[NextAuth] signIn callback — user:", user?.email, "account provider:", account?.provider);
+      return true;
+    },
+
     async jwt({ token, account, profile }) {
-      // ── First sign-in ────────────────────────────────────────────────────
       if (account) {
+        console.log("[NextAuth] JWT — first sign in, setting tokens");
         token.accessToken  = account.access_token  as string;
         token.refreshToken = account.refresh_token as string;
         token.expiresAt    = account.expires_at    as number;
 
-        if (profile) {
-          token.accountId = (profile as any).account_id ?? "";
-        }
+        if (profile) token.accountId = (profile as any).account_id ?? "";
 
         try {
           const res = await fetch(
@@ -101,6 +91,7 @@ export const authOptions: NextAuthOptions = {
             { headers: { Authorization: `Bearer ${account.access_token}` } }
           );
           const resources = await res.json();
+          console.log("[NextAuth] accessible-resources:", JSON.stringify(resources));
           if (Array.isArray(resources) && resources.length > 0) {
             token.cloudId  = resources[0].id;
             token.siteUrl  = resources[0].url;
@@ -110,13 +101,12 @@ export const authOptions: NextAuthOptions = {
           console.error("[NextAuth] accessible-resources failed:", err);
         }
 
-        return token; // ← critical: return early, skip refresh block
+        return token;
       }
 
-      // ── Subsequent requests: refresh if expired ──────────────────────────
-      const expiresAt  = token.expiresAt as number | undefined;
+      const expiresAt = token.expiresAt as number | undefined;
       if (expiresAt && Date.now() < expiresAt * 1000) return token;
-      if (!token.refreshToken) return { ...token, error: "RefreshTokenError" };
+      if (!token.refreshToken) return { ...token, error: "NoRefreshToken" };
 
       try {
         const res = await fetch("https://auth.atlassian.com/oauth/token", {
@@ -149,36 +139,24 @@ export const authOptions: NextAuthOptions = {
       session.siteUrl        = (token.siteUrl     as string) ?? "";
       session.siteName       = (token.siteName    as string) ?? "";
       session.user.accountId = (token.accountId   as string) ?? "";
-      if ((token as any).error) (session as any).error = (token as any).error;
       return session;
     },
   },
 };
 
-// ── Type augmentation ─────────────────────────────────────────────────────────
 declare module "next-auth" {
   interface Session {
     accessToken: string;
     cloudId:     string;
     siteUrl:     string;
     siteName:    string;
-    user: {
-      name:      string;
-      email:     string;
-      image:     string;
-      accountId: string;
-    };
+    user: { name: string; email: string; image: string; accountId: string };
   }
 }
 
 declare module "next-auth/jwt" {
   interface JWT {
-    accessToken:  string;
-    refreshToken: string;
-    expiresAt:    number;
-    cloudId:      string;
-    siteUrl:      string;
-    siteName:     string;
-    accountId:    string;
+    accessToken: string; refreshToken: string; expiresAt: number;
+    cloudId: string; siteUrl: string; siteName: string; accountId: string;
   }
 }

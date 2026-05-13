@@ -60,7 +60,7 @@ export async function getIssues(
   accessToken: string,
   jql?: string
 ): Promise<JiraIssue[]> {
-  const query = jql ?? `project = ${PROJECT_KEY} AND resolution = Unresolved ORDER BY updated DESC`;
+  const query = jql ?? `project = ${PROJECT_KEY} AND sprint in openSprints() ORDER BY updated DESC`;
   const fields = [
     "summary", "status", "priority", "assignee", "reporter",
     "created", "updated", "duedate", "labels", "comment",

@@ -3,12 +3,12 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { signOut, useSession } from "next-auth/react";
 import { LayoutGrid, BarChart2, Settings, LogOut, CheckSquare } from "lucide-react";
-import { cn, getInitials } from "@/lib/utils";
+import { getInitials } from "@/lib/utils";
 
 const NAV = [
-  { href: "/board",    label: "Board",     icon: LayoutGrid },
-  { href: "/stats",    label: "Stats",     icon: BarChart2 },
-  { href: "/settings", label: "Settings",  icon: Settings },
+  { href: "/board",    label: "Board",    icon: LayoutGrid },
+  { href: "/stats",    label: "Stats",    icon: BarChart2 },
+  { href: "/settings", label: "Settings", icon: Settings },
 ];
 
 export default function Sidebar() {
@@ -16,75 +16,71 @@ export default function Sidebar() {
   const { data: session } = useSession();
 
   return (
-    <aside className="fixed left-0 top-0 bottom-0 w-[240px] flex flex-col bg-navy-100/90 border-r border-white/6 z-30">
+    <aside style={{
+      position: "fixed", left: 0, top: 0, bottom: 0, width: 220,
+      display: "flex", flexDirection: "column",
+      background: "#162435",
+      borderRight: "1px solid rgba(255,255,255,0.07)",
+      zIndex: 30,
+      fontFamily: "'DM Sans', system-ui, sans-serif",
+    }}>
       {/* Logo */}
-      <div className="px-5 py-5 border-b border-white/6">
-        <div className="flex items-center gap-2.5">
-          <div className="w-8 h-8 rounded-lg bg-brand-400 flex items-center justify-center flex-shrink-0">
-            <CheckSquare className="w-4 h-4 text-white" strokeWidth={2.5} />
+      <div style={{ padding: "20px 16px", borderBottom: "1px solid rgba(255,255,255,0.07)" }}>
+        <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+          <div style={{
+            width: 32, height: 32, borderRadius: 10,
+            background: "linear-gradient(135deg, #1E6FD9, #00C2CB)",
+            display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0,
+          }}>
+            <CheckSquare size={16} color="white" strokeWidth={2.5} />
           </div>
           <div>
-            <div className="text-sm font-bold text-white leading-none">IOTA To-Do</div>
-            <div className="text-[10px] text-slate-500 mt-0.5">
+            <div style={{ fontSize: 13, fontWeight: 700, color: "#fff", lineHeight: 1 }}>IOTA To-Do</div>
+            <div style={{ fontSize: 10, color: "#475569", marginTop: 2 }}>
               {session?.siteName ?? "Jira Connected"}
             </div>
           </div>
         </div>
       </div>
 
-      {/* Navigation */}
-      <nav className="flex-1 px-3 py-4 space-y-0.5 overflow-y-auto">
+      {/* Nav */}
+      <nav style={{ flex: 1, padding: "12px 8px", display: "flex", flexDirection: "column", gap: 2 }}>
         {NAV.map(({ href, label, icon: Icon }) => {
           const active = pathname === href || pathname.startsWith(href + "/");
           return (
-            <Link
-              key={href}
-              href={href}
-              className={cn(
-                "flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium transition-all duration-150",
-                active
-                  ? "bg-brand-400/15 text-brand-300 shadow-sm"
-                  : "text-slate-400 hover:text-slate-200 hover:bg-white/5"
-              )}
-            >
-              <Icon className={cn("w-4 h-4", active ? "text-brand-400" : "text-slate-500")} />
+            <Link key={href} href={href} style={{
+              display: "flex", alignItems: "center", gap: 10,
+              padding: "9px 12px", borderRadius: 10, textDecoration: "none",
+              fontSize: 13, fontWeight: 500,
+              background: active ? "rgba(30,111,217,0.15)" : "transparent",
+              color: active ? "#4D96D9" : "#64748b",
+              transition: "all 0.15s",
+            }}>
+              <Icon size={15} color={active ? "#1E6FD9" : "#475569"} />
               {label}
-              {active && (
-                <div className="ml-auto w-1.5 h-1.5 rounded-full bg-brand-400" />
-              )}
+              {active && <div style={{ marginLeft: "auto", width: 6, height: 6, borderRadius: "50%", background: "#1E6FD9" }} />}
             </Link>
           );
         })}
       </nav>
 
-      {/* User profile */}
-      <div className="px-3 py-4 border-t border-white/6">
-        <div className="flex items-center gap-3 px-2 py-2 rounded-xl hover:bg-white/5 transition-colors group">
-          {session?.user.image ? (
-            <img
-              src={session.user.image}
-              alt={session.user.name}
-              className="w-8 h-8 rounded-full border border-white/10 flex-shrink-0"
-            />
+      {/* User */}
+      <div style={{ padding: "12px 8px", borderTop: "1px solid rgba(255,255,255,0.07)" }}>
+        <div style={{ display: "flex", alignItems: "center", gap: 10, padding: "8px 12px", borderRadius: 10 }}>
+          {session?.user?.image ? (
+            <img src={session.user.image} alt="" style={{ width: 30, height: 30, borderRadius: "50%", border: "1px solid rgba(255,255,255,0.1)", flexShrink: 0 }} />
           ) : (
-            <div className="w-8 h-8 rounded-full bg-brand-400/20 flex items-center justify-center text-brand-300 text-xs font-semibold flex-shrink-0">
-              {getInitials(session?.user.name ?? "U")}
+            <div style={{ width: 30, height: 30, borderRadius: "50%", background: "rgba(30,111,217,0.2)", color: "#4D96D9", fontSize: 11, fontWeight: 700, display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>
+              {getInitials(session?.user?.name ?? "U")}
             </div>
           )}
-          <div className="flex-1 min-w-0">
-            <div className="text-xs font-medium text-slate-200 truncate">
-              {session?.user.name}
-            </div>
-            <div className="text-[10px] text-slate-500 truncate">
-              {session?.user.email}
-            </div>
+          <div style={{ flex: 1, minWidth: 0 }}>
+            <div style={{ fontSize: 12, fontWeight: 600, color: "#e2e8f0", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{session?.user?.name ?? "User"}</div>
+            <div style={{ fontSize: 10, color: "#475569", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{session?.user?.email}</div>
           </div>
-          <button
-            onClick={() => signOut({ callbackUrl: "/login" })}
-            className="opacity-0 group-hover:opacity-100 transition-opacity p-1 rounded-lg hover:bg-red-400/10 text-slate-500 hover:text-red-400"
-            title="Sign out"
-          >
-            <LogOut className="w-3.5 h-3.5" />
+          <button onClick={() => signOut({ callbackUrl: "/login" })} title="Sign out"
+            style={{ background: "none", border: "none", cursor: "pointer", color: "#475569", padding: 4, borderRadius: 6, display: "flex" }}>
+            <LogOut size={14} />
           </button>
         </div>
       </div>

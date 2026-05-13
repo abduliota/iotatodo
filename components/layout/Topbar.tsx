@@ -7,12 +7,7 @@ import { PRIORITY_CONFIG } from "@/lib/utils";
 import { useState } from "react";
 
 export default function Topbar({ title }: { title: string }) {
-  const {
-    search, setSearch,
-    filterAssignee, setFilterAssignee,
-    filterPriority, setFilterPriority,
-    openCreateModal,
-  } = useAppStore();
+  const { search, setSearch, filterAssignee, setFilterAssignee, filterPriority, setFilterPriority, openCreateModal } = useAppStore();
   const [showFilters, setShowFilters] = useState(false);
 
   const { data: usersData } = useQuery<{ users: JiraUser[] }>({
@@ -23,100 +18,84 @@ export default function Topbar({ title }: { title: string }) {
 
   const hasFilters = !!filterAssignee || !!filterPriority;
 
+  const inputStyle = {
+    background: "rgba(255,255,255,0.05)",
+    border: "1px solid rgba(255,255,255,0.08)",
+    borderRadius: 10, color: "#e2e8f0", fontSize: 13,
+    fontFamily: "'DM Sans', system-ui, sans-serif",
+    outline: "none",
+  };
+
   return (
-    <header className="sticky top-0 z-20 flex items-center gap-3 px-6 py-3.5 bg-navy-100/80 border-b border-white/6 backdrop-blur-sm">
-      <h1 className="text-base font-semibold text-white mr-2">{title}</h1>
+    <header style={{
+      position: "sticky", top: 0, zIndex: 20,
+      display: "flex", alignItems: "center", gap: 10,
+      padding: "12px 24px",
+      background: "rgba(22,36,53,0.95)",
+      borderBottom: "1px solid rgba(255,255,255,0.07)",
+      backdropFilter: "blur(10px)",
+      fontFamily: "'DM Sans', system-ui, sans-serif",
+      flexWrap: "wrap",
+    }}>
+      <h1 style={{ fontSize: 15, fontWeight: 700, color: "#fff", marginRight: 8, whiteSpace: "nowrap" }}>{title}</h1>
 
       {/* Search */}
-      <div className="flex-1 max-w-sm relative">
-        <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-slate-500" />
-        <input
-          type="text"
-          placeholder="Search tasks…"
-          value={search}
-          onChange={e => setSearch(e.target.value)}
-          className="w-full bg-white/5 border border-white/8 rounded-xl pl-9 pr-4 py-2 text-sm text-slate-200 placeholder:text-slate-500 focus:outline-none focus:border-brand-400/50 focus:bg-white/8 transition-all"
-        />
-        {search && (
-          <button onClick={() => setSearch("")} className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-500 hover:text-slate-300">
-            <X className="w-3 h-3" />
-          </button>
-        )}
+      <div style={{ position: "relative", flex: 1, maxWidth: 320, minWidth: 160 }}>
+        <Search size={13} color="#475569" style={{ position: "absolute", left: 10, top: "50%", transform: "translateY(-50%)" }} />
+        <input type="text" placeholder="Search tasks…" value={search} onChange={e => setSearch(e.target.value)}
+          style={{ ...inputStyle, width: "100%", paddingLeft: 32, paddingRight: 32, paddingTop: 8, paddingBottom: 8 }} />
+        {search && <button onClick={() => setSearch("")} style={{ position: "absolute", right: 8, top: "50%", transform: "translateY(-50%)", background: "none", border: "none", cursor: "pointer", color: "#475569" }}><X size={12} /></button>}
       </div>
 
-      {/* Filter toggle */}
-      <button
-        onClick={() => setShowFilters(v => !v)}
-        className={`relative flex items-center gap-1.5 px-3 py-2 rounded-xl text-sm border transition-all ${
-          showFilters || hasFilters
-            ? "bg-brand-400/10 border-brand-400/30 text-brand-300"
-            : "bg-white/5 border-white/8 text-slate-400 hover:text-slate-200 hover:bg-white/8"
-        }`}
-      >
-        <SlidersHorizontal className="w-3.5 h-3.5" />
-        Filters
-        {hasFilters && (
-          <span className="absolute -top-1 -right-1 w-4 h-4 bg-brand-400 rounded-full text-[9px] font-bold text-white flex items-center justify-center">
-            {(filterAssignee ? 1 : 0) + (filterPriority ? 1 : 0)}
-          </span>
-        )}
+      {/* Filter button */}
+      <button onClick={() => setShowFilters(v => !v)} style={{
+        ...inputStyle, display: "flex", alignItems: "center", gap: 6,
+        padding: "8px 12px", cursor: "pointer", whiteSpace: "nowrap",
+        color: showFilters || hasFilters ? "#4D96D9" : "#64748b",
+        background: showFilters || hasFilters ? "rgba(30,111,217,0.1)" : "rgba(255,255,255,0.05)",
+        borderColor: showFilters || hasFilters ? "rgba(30,111,217,0.3)" : "rgba(255,255,255,0.08)",
+        position: "relative",
+      }}>
+        <SlidersHorizontal size={13} />
+        <span style={{ fontSize: 13 }}>Filters</span>
+        {hasFilters && <span style={{ position: "absolute", top: -4, right: -4, width: 16, height: 16, borderRadius: "50%", background: "#1E6FD9", color: "#fff", fontSize: 9, fontWeight: 700, display: "flex", alignItems: "center", justifyContent: "center" }}>{(filterAssignee ? 1 : 0) + (filterPriority ? 1 : 0)}</span>}
       </button>
 
-      {/* Notification bell */}
-      <button className="p-2 rounded-xl bg-white/5 border border-white/8 text-slate-400 hover:text-slate-200 hover:bg-white/8 transition-all">
-        <Bell className="w-4 h-4" />
+      <button style={{ ...inputStyle, padding: "8px 10px", cursor: "pointer", color: "#64748b", display: "flex" }}>
+        <Bell size={15} />
       </button>
 
-      {/* Create task */}
-      <button
-        onClick={openCreateModal}
-        className="flex items-center gap-1.5 px-4 py-2 bg-brand-400 hover:bg-brand-300 text-white font-medium text-sm rounded-xl transition-all shadow-md shadow-brand-400/20"
-      >
-        <Plus className="w-4 h-4" />
+      <button onClick={openCreateModal} style={{
+        display: "flex", alignItems: "center", gap: 6, padding: "8px 16px",
+        background: "linear-gradient(135deg, #1E6FD9, #1558B0)", border: "none",
+        borderRadius: 10, color: "#fff", fontSize: 13, fontWeight: 600,
+        cursor: "pointer", whiteSpace: "nowrap", fontFamily: "inherit",
+        boxShadow: "0 4px 12px rgba(30,111,217,0.3)",
+      }}>
+        <Plus size={14} />
         New Task
       </button>
 
-      {/* Filter dropdown */}
+      {/* Filter row */}
       {showFilters && (
-        <div className="absolute top-full left-0 right-0 z-30 mt-1 px-6 py-3 bg-navy-50 border-b border-white/6 flex items-center gap-4 animate-fade-in">
-          {/* Assignee filter */}
-          <div className="flex items-center gap-2">
-            <span className="text-xs text-slate-500 font-medium">Assignee</span>
-            <select
-              value={filterAssignee ?? ""}
-              onChange={e => setFilterAssignee(e.target.value || null)}
-              className="bg-white/5 border border-white/8 rounded-lg px-2 py-1.5 text-sm text-slate-200 focus:outline-none focus:border-brand-400/50"
-            >
+        <div style={{ width: "100%", display: "flex", alignItems: "center", gap: 16, paddingTop: 8, flexWrap: "wrap" }}>
+          <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+            <span style={{ fontSize: 11, color: "#475569", fontWeight: 600 }}>ASSIGNEE</span>
+            <select value={filterAssignee ?? ""} onChange={e => setFilterAssignee(e.target.value || null)}
+              style={{ ...inputStyle, padding: "6px 10px", fontSize: 12 }}>
               <option value="">All</option>
-              {usersData?.users.map(u => (
-                <option key={u.accountId} value={u.accountId}>{u.displayName}</option>
-              ))}
+              {usersData?.users?.map(u => <option key={u.accountId} value={u.accountId}>{u.displayName}</option>)}
             </select>
           </div>
-
-          {/* Priority filter */}
-          <div className="flex items-center gap-2">
-            <span className="text-xs text-slate-500 font-medium">Priority</span>
-            <select
-              value={filterPriority ?? ""}
-              onChange={e => setFilterPriority(e.target.value || null)}
-              className="bg-white/5 border border-white/8 rounded-lg px-2 py-1.5 text-sm text-slate-200 focus:outline-none focus:border-brand-400/50"
-            >
+          <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+            <span style={{ fontSize: 11, color: "#475569", fontWeight: 600 }}>PRIORITY</span>
+            <select value={filterPriority ?? ""} onChange={e => setFilterPriority(e.target.value || null)}
+              style={{ ...inputStyle, padding: "6px 10px", fontSize: 12 }}>
               <option value="">All</option>
-              {Object.keys(PRIORITY_CONFIG).map(p => (
-                <option key={p} value={p}>{p}</option>
-              ))}
+              {Object.keys(PRIORITY_CONFIG).map(p => <option key={p} value={p}>{p}</option>)}
             </select>
           </div>
-
-          {hasFilters && (
-            <button
-              onClick={() => { setFilterAssignee(null); setFilterPriority(null); }}
-              className="text-xs text-red-400 hover:text-red-300 transition-colors"
-            >
-              Clear filters
-            </button>
-          )}
+          {hasFilters && <button onClick={() => { setFilterAssignee(null); setFilterPriority(null); }} style={{ fontSize: 12, color: "#f87171", background: "none", border: "none", cursor: "pointer" }}>Clear</button>}
         </div>
       )}
     </header>

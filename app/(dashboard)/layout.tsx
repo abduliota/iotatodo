@@ -8,9 +8,9 @@ export default async function DashboardLayout({ children }: { children: React.Re
   if (!session) redirect("/login");
 
   return (
-    <div className="flex min-h-screen">
+    <div style={{ display: "flex", minHeight: "100vh", background: "#0D1B2A" }}>
       <Sidebar />
-      <main className="flex-1 ml-[240px] flex flex-col min-h-screen overflow-x-hidden">
+      <main style={{ flex: 1, marginLeft: 220, display: "flex", flexDirection: "column", minHeight: "100vh", overflow: "hidden" }}>
         {children}
       </main>
     </div>

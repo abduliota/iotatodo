@@ -1,15 +1,52 @@
 import type { NextAuthOptions } from "next-auth";
 
+const useSecureCookies = process.env.NEXTAUTH_URL?.startsWith("https://");
+const cookiePrefix   = useSecureCookies ? "__Secure-" : "";
+const hostName       = process.env.NEXTAUTH_URL
+  ? new URL(process.env.NEXTAUTH_URL).hostname
+  : "localhost";
+
 export const authOptions: NextAuthOptions = {
   secret: process.env.NEXTAUTH_SECRET,
   session: { strategy: "jwt" },
-  pages: { signIn: "/login" },
+  pages:   { signIn: "/login" },
+
+  // ── Explicit cookie config for HTTPS / Render ─────────────────────────────
+  cookies: {
+    sessionToken: {
+      name: `${cookiePrefix}next-auth.session-token`,
+      options: {
+        httpOnly: true,
+        sameSite: "lax",
+        path:     "/",
+        secure:   useSecureCookies,
+        domain:   hostName === "localhost" ? undefined : hostName,
+      },
+    },
+    callbackUrl: {
+      name: `${cookiePrefix}next-auth.callback-url`,
+      options: {
+        sameSite: "lax",
+        path:     "/",
+        secure:   useSecureCookies,
+      },
+    },
+    csrfToken: {
+      name: `next-auth.csrf-token`,
+      options: {
+        httpOnly: true,
+        sameSite: "lax",
+        path:     "/",
+        secure:   useSecureCookies,
+      },
+    },
+  },
 
   providers: [
     {
-      id: "atlassian",
-      name: "Atlassian",
-      type: "oauth",
+      id:           "atlassian",
+      name:         "Atlassian",
+      type:         "oauth",
       clientId:     process.env.ATLASSIAN_CLIENT_ID!,
       clientSecret: process.env.ATLASSIAN_CLIENT_SECRET!,
 
@@ -38,9 +75,9 @@ export const authOptions: NextAuthOptions = {
       profile(profile) {
         return {
           id:    profile.account_id,
-          name:  profile.name  ?? profile.display_name ?? "User",
-          email: profile.email ?? "",
-          image: profile.picture ?? profile.avatar_url ?? "",
+          name:  profile.name          ?? profile.display_name ?? "User",
+          email: profile.email         ?? "",
+          image: profile.picture       ?? profile.avatar_url   ?? "",
         };
       },
     },
@@ -48,7 +85,7 @@ export const authOptions: NextAuthOptions = {
 
   callbacks: {
     async jwt({ token, account, profile }) {
-      // ── First sign-in: account is present ────────────────────────────────
+      // ── First sign-in ────────────────────────────────────────────────────
       if (account) {
         token.accessToken  = account.access_token  as string;
         token.refreshToken = account.refresh_token as string;
@@ -58,7 +95,6 @@ export const authOptions: NextAuthOptions = {
           token.accountId = (profile as any).account_id ?? "";
         }
 
-        // Fetch the user's accessible Jira cloud instance
         try {
           const res = await fetch(
             "https://api.atlassian.com/oauth/token/accessible-resources",
@@ -71,28 +107,20 @@ export const authOptions: NextAuthOptions = {
             token.siteName = resources[0].name;
           }
         } catch (err) {
-          console.error("[NextAuth] Failed to fetch accessible resources:", err);
-          // Non-fatal — token still valid, cloudId just won't be set
+          console.error("[NextAuth] accessible-resources failed:", err);
         }
 
-        // ★ CRITICAL: return here so we don't fall into the refresh block
-        return token;
+        return token; // ← critical: return early, skip refresh block
       }
 
-      // ── Subsequent requests: check if access token needs refreshing ───────
-      const expiresAt = token.expiresAt as number | undefined;
-      const notExpired = expiresAt && Date.now() < expiresAt * 1000;
-      if (notExpired) return token;
-
-      // Token expired — try to refresh
-      if (!token.refreshToken) {
-        console.error("[NextAuth] No refresh token available");
-        return { ...token, error: "RefreshTokenError" };
-      }
+      // ── Subsequent requests: refresh if expired ──────────────────────────
+      const expiresAt  = token.expiresAt as number | undefined;
+      if (expiresAt && Date.now() < expiresAt * 1000) return token;
+      if (!token.refreshToken) return { ...token, error: "RefreshTokenError" };
 
       try {
         const res = await fetch("https://auth.atlassian.com/oauth/token", {
-          method: "POST",
+          method:  "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({
             grant_type:    "refresh_token",
@@ -101,31 +129,27 @@ export const authOptions: NextAuthOptions = {
             refresh_token: token.refreshToken,
           }),
         });
-
-        if (!res.ok) throw new Error(`Refresh failed: ${res.status}`);
-
-        const refreshed = await res.json();
+        if (!res.ok) throw new Error(`Refresh ${res.status}`);
+        const r = await res.json();
         return {
           ...token,
-          accessToken:  refreshed.access_token,
-          refreshToken: refreshed.refresh_token ?? token.refreshToken,
-          expiresAt:    Math.floor(Date.now() / 1000) + (refreshed.expires_in ?? 3600),
+          accessToken:  r.access_token,
+          refreshToken: r.refresh_token ?? token.refreshToken,
+          expiresAt:    Math.floor(Date.now() / 1000) + (r.expires_in ?? 3600),
         };
       } catch (err) {
-        console.error("[NextAuth] Token refresh error:", err);
+        console.error("[NextAuth] Token refresh failed:", err);
         return { ...token, error: "RefreshTokenError" };
       }
     },
 
     async session({ session, token }) {
-      session.accessToken    = token.accessToken as string;
-      session.cloudId        = (token.cloudId  as string) ?? "";
-      session.siteUrl        = (token.siteUrl  as string) ?? "";
-      session.siteName       = (token.siteName as string) ?? "";
-      session.user.accountId = (token.accountId as string) ?? "";
-      if ((token as any).error) {
-        (session as any).error = (token as any).error;
-      }
+      session.accessToken    = token.accessToken  as string;
+      session.cloudId        = (token.cloudId     as string) ?? "";
+      session.siteUrl        = (token.siteUrl     as string) ?? "";
+      session.siteName       = (token.siteName    as string) ?? "";
+      session.user.accountId = (token.accountId   as string) ?? "";
+      if ((token as any).error) (session as any).error = (token as any).error;
       return session;
     },
   },

@@ -51,9 +51,9 @@ export const authOptions: NextAuthOptions = {
     async jwt({ token, account, profile }) {
       // On first sign-in, grab access token + cloud ID
       if (account) {
-        token.accessToken  = account.access_token;
-        token.refreshToken = account.refresh_token;
-        token.expiresAt    = account.expires_at;
+        token.accessToken  = account.access_token  as string;
+        token.refreshToken = account.refresh_token as string;
+        token.expiresAt    = account.expires_at    as number;
 
         // Fetch accessible Jira cloud instances
         const resourcesRes = await fetch(
@@ -90,8 +90,8 @@ export const authOptions: NextAuthOptions = {
         const refreshed = await res.json();
         return {
           ...token,
-          accessToken: refreshed.access_token,
-          expiresAt:   Math.floor(Date.now() / 1000) + refreshed.expires_in,
+          accessToken:  refreshed.access_token,
+          expiresAt:    Math.floor(Date.now() / 1000) + refreshed.expires_in,
           refreshToken: refreshed.refresh_token ?? token.refreshToken,
         };
       } catch {
@@ -100,11 +100,11 @@ export const authOptions: NextAuthOptions = {
     },
 
     async session({ session, token }) {
-      session.accessToken = token.accessToken as string;
-      session.cloudId     = token.cloudId as string;
-      session.siteUrl     = token.siteUrl as string;
-      session.siteName    = token.siteName as string;
-      session.user.accountId = token.accountId as string;
+      session.accessToken    = token.accessToken as string;
+      session.cloudId        = token.cloudId     as string;
+      session.siteUrl        = token.siteUrl     as string;
+      session.siteName       = token.siteName    as string;
+      session.user.accountId = token.accountId   as string;
       return session;
     },
   },

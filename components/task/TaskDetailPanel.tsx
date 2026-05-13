@@ -146,6 +146,31 @@ export default function TaskDetailPanel() {
 
           {/* Meta grid */}
           <div style={{ padding: "14px 20px", borderBottom: "1px solid rgba(255,255,255,0.06)", display: "grid", gridTemplateColumns: "1fr 1fr", gap: 14 }}>
+
+            {/* Priority */}
+            <MetaItem icon={<span style={{ fontSize: 10 }}>⚡</span>} label="Priority">
+              <select
+                value={issue.fields.priority?.name ?? "Medium"}
+                onChange={e => updateMutation.mutate({ priority: e.target.value })}
+                style={{ background: "rgba(255,255,255,0.05)", border: "1px solid rgba(255,255,255,0.1)", borderRadius: 6, color: priorityColor, fontSize: 12, fontWeight: 600, padding: "3px 6px", cursor: "pointer", outline: "none", fontFamily: "inherit", width: "100%" }}
+              >
+                {["Highest","High","Medium","Low","Lowest"].map(p => (
+                  <option key={p} value={p} style={{ background: "#162435", color: "#e2e8f0" }}>{p}</option>
+                ))}
+              </select>
+            </MetaItem>
+
+            {/* Due date */}
+            <MetaItem icon={<Calendar size={13} color="#475569" />} label="Due Date">
+              <input
+                type="date"
+                value={issue.fields.duedate ?? ""}
+                onChange={e => updateMutation.mutate({ duedate: e.target.value || null })}
+                style={{ background: "rgba(255,255,255,0.05)", border: "1px solid rgba(255,255,255,0.1)", borderRadius: 6, color: issue.fields.duedate ? "#e2e8f0" : "#475569", fontSize: 12, padding: "3px 6px", cursor: "pointer", outline: "none", fontFamily: "inherit", width: "100%", colorScheme: "dark" }}
+              />
+            </MetaItem>
+
+            {/* Assignee */}
             <MetaItem icon={<User size={13} color="#475569" />} label="Assignee">
               {issue.fields.assignee ? (
                 <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
@@ -159,16 +184,6 @@ export default function TaskDetailPanel() {
                   <span style={{ fontSize: 12, color: "#e2e8f0" }}>{issue.fields.assignee.displayName}</span>
                 </div>
               ) : <span style={{ fontSize: 12, color: "#475569" }}>Unassigned</span>}
-            </MetaItem>
-
-            <MetaItem icon={<Calendar size={13} color="#475569" />} label="Due Date">
-              <span style={{ fontSize: 12, color: issue.fields.duedate ? "#e2e8f0" : "#475569" }}>
-                {formatDate(issue.fields.duedate)}
-              </span>
-            </MetaItem>
-
-            <MetaItem icon={<Clock size={13} color="#475569" />} label="Created">
-              <span style={{ fontSize: 12, color: "#64748b" }}>{timeAgo(issue.fields.created)}</span>
             </MetaItem>
 
             <MetaItem icon={<Clock size={13} color="#475569" />} label="Updated">

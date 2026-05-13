@@ -18,7 +18,7 @@ export const authOptions: NextAuthOptions = {
         url: "https://auth.atlassian.com/authorize",
         params: {
           audience:      "api.atlassian.com",
-          scope:         "read:jira-work write:jira-work read:jira-user manage:jira-project offline_access",
+          scope:         "read:jira-work write:jira-work read:jira-user manage:jira-project offline_access read:me read:account",
           prompt:        "consent",
           response_type: "code",
         },

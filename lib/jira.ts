@@ -69,7 +69,7 @@ export async function getIssues(
 
   const data = await jiraFetch(
     cloudId, accessToken,
-    `/search?jql=${encodeURIComponent(query)}&fields=${fields}&maxResults=100&expand=changelog`
+    `/search/jql?jql=${encodeURIComponent(query)}&fields=${fields}&maxResults=100&expand=changelog`
   );
   return data.issues ?? [];
 }
@@ -192,7 +192,7 @@ export async function getAssignableUsers(
 ): Promise<JiraUser[]> {
   return jiraFetch(
     cloudId, accessToken,
-    `/user/assignable/multiProjectSearch?projectKeys=${PROJECT_KEY}&maxResults=50`
+    `/user/assignable/search?project=${PROJECT_KEY}&maxResults=50`
   );
 }
 

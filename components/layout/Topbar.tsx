@@ -1,5 +1,7 @@
 "use client";
-import { Search, Plus, SlidersHorizontal, Bell, X } from "lucide-react";
+import { Search, Plus, SlidersHorizontal, Bell, X, Upload } from "lucide-react";
+import dynamic from "next/dynamic";
+const UploadDocumentModal = dynamic(() => import("@/components/task/UploadDocumentModal"), { ssr: false });
 import { useAppStore } from "@/store/useAppStore";
 import { useQuery } from "@tanstack/react-query";
 import type { JiraUser } from "@/types/jira";
@@ -9,6 +11,7 @@ import { useState } from "react";
 export default function Topbar({ title }: { title: string }) {
   const { search, setSearch, filterAssignee, setFilterAssignee, filterPriority, setFilterPriority, openCreateModal } = useAppStore();
   const [showFilters, setShowFilters] = useState(false);
+  const [showUpload, setShowUpload] = useState(false);
 
   const { data: usersData } = useQuery<{ users: JiraUser[] }>({
     queryKey: ["jira-users"],
@@ -65,6 +68,16 @@ export default function Topbar({ title }: { title: string }) {
         <Bell size={15} />
       </button>
 
+      <button onClick={() => setShowUpload(true)} style={{
+        display: "flex", alignItems: "center", gap: 6, padding: "8px 14px",
+        background: "rgba(0,194,203,0.1)", border: "1px solid rgba(0,194,203,0.25)",
+        borderRadius: 10, color: "#00C2CB", fontSize: 13, fontWeight: 600,
+        cursor: "pointer", whiteSpace: "nowrap", fontFamily: "inherit",
+      }}>
+        <Upload size={14} />
+        Upload Doc
+      </button>
+
       <button onClick={openCreateModal} style={{
         display: "flex", alignItems: "center", gap: 6, padding: "8px 16px",
         background: "linear-gradient(135deg, #1E6FD9, #1558B0)", border: "none",
@@ -98,6 +111,8 @@ export default function Topbar({ title }: { title: string }) {
           {hasFilters && <button onClick={() => { setFilterAssignee(null); setFilterPriority(null); }} style={{ fontSize: 12, color: "#f87171", background: "none", border: "none", cursor: "pointer" }}>Clear</button>}
         </div>
       )}
+
+      {showUpload && <UploadDocumentModal onClose={() => setShowUpload(false)} />}
     </header>
   );
 }

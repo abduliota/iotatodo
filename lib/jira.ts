@@ -60,7 +60,7 @@ export async function getIssues(
   accessToken: string,
   jql?: string
 ): Promise<JiraIssue[]> {
-  const query = jql ?? `project = ${PROJECT_KEY} AND sprint in openSprints() ORDER BY updated DESC`;
+  const query = jql ?? `project = ${PROJECT_KEY} AND resolution = Unresolved ORDER BY updated DESC`;
   const fields = [
     "summary", "status", "priority", "assignee", "reporter",
     "created", "updated", "duedate", "labels", "comment",
@@ -115,8 +115,39 @@ export async function createIssue(
     body:   JSON.stringify(body),
   });
 
+  // Add to active sprint so it shows on the board immediately
+  await addToActiveSprint(cloudId, accessToken, created.key);
+
   // Return full issue
   return getIssue(cloudId, accessToken, created.id);
+}
+
+// ── Add issue to active sprint ────────────────────────────────────────────────
+async function addToActiveSprint(
+  cloudId: string,
+  accessToken: string,
+  issueKey: string
+): Promise<void> {
+  try {
+    // Get board for this project
+    const boardsRes = await jiraAgileFetch(cloudId, accessToken, `/board?projectKeyOrId=${PROJECT_KEY}`);
+    const board = boardsRes?.values?.[0];
+    if (!board) return;
+
+    // Get active sprint
+    const sprintsRes = await jiraAgileFetch(cloudId, accessToken, `/board/${board.id}/sprint?state=active`);
+    const sprint = sprintsRes?.values?.[0];
+    if (!sprint) return;
+
+    // Add issue to sprint
+    await jiraAgileFetch(cloudId, accessToken, `/sprint/${sprint.id}/issue`, {
+      method: "POST",
+      body: JSON.stringify({ issues: [issueKey] }),
+    });
+    console.log(`[jira] Added ${issueKey} to sprint ${sprint.id}`);
+  } catch (err) {
+    console.error("[jira] addToActiveSprint failed (non-fatal):", err);
+  }
 }
 
 export async function updateIssue(

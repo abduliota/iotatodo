@@ -116,7 +116,7 @@ export async function createIssue(
   // Get active sprint and set it directly on the issue at creation
   const sprintId = await getActiveSprintId(cloudId, accessToken);
   if (sprintId) {
-    body.fields.customfield_10020 = { id: sprintId };
+    body.fields.customfield_10020 = sprintId;
   }
 
   const created = await jiraFetch(cloudId, accessToken, "/issue", {

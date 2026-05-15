@@ -113,56 +113,68 @@ export async function createIssue(
     body.fields.duedate = payload.duedate;
   }
 
+  // Get active sprint and set it directly on the issue at creation
+  const sprintId = await getActiveSprintId(cloudId, accessToken);
+  if (sprintId) {
+    body.fields.customfield_10020 = { id: sprintId };
+  }
+
   const created = await jiraFetch(cloudId, accessToken, "/issue", {
     method: "POST",
     body:   JSON.stringify(body),
   });
 
-  // Add to active sprint so it shows on the board immediately
-  await addToActiveSprint(cloudId, accessToken, created.key);
-
   // Return full issue
   return getIssue(cloudId, accessToken, created.id);
 }
 
-// ── Add issue to active sprint ────────────────────────────────────────────────
+// ── Get active sprint ID via JQL (no agile API needed) ───────────────────────
+async function getActiveSprintId(
+  cloudId: string,
+  accessToken: string,
+): Promise<number | null> {
+  try {
+    // Fetch an existing sprint issue to extract the sprint ID from its fields
+    const data = await jiraFetch(cloudId, accessToken,
+      `/search/jql?jql=${encodeURIComponent(`project = ${PROJECT_KEY} AND sprint in openSprints()`)}&maxResults=1&fields=customfield_10020`
+    );
+    const issue = data?.issues?.[0];
+    if (!issue) return null;
+
+    // Sprint info lives in customfield_10020 (the sprint field)
+    const sprintField = issue.fields?.customfield_10020;
+    if (!sprintField) return null;
+
+    // It can be an array or single object
+    const sprint = Array.isArray(sprintField) ? sprintField[0] : sprintField;
+    const sprintId = sprint?.id;
+    console.log(`[jira] Found active sprint ID: ${sprintId}`);
+    return sprintId ?? null;
+  } catch (err) {
+    console.error("[jira] getActiveSprintId failed:", err);
+    return null;
+  }
+}
+
+// ── Add issue to active sprint using agile API ────────────────────────────────
 async function addToActiveSprint(
   cloudId: string,
   accessToken: string,
   issueKey: string
 ): Promise<void> {
   try {
-    // Find active sprint via JQL — no agile API needed
-    const sprintData = await jiraFetch(cloudId, accessToken,
-      `/search/jql?jql=${encodeURIComponent(`project = ${PROJECT_KEY} AND sprint in openSprints()`)}&maxResults=1&fields=sprint`
-    );
-
-    // Get sprint ID from the first issue in the active sprint
-    const firstIssue = sprintData?.issues?.[0];
-    const sprintField = firstIssue?.fields?.sprint ?? Object.values(firstIssue?.fields ?? {}).find((v: any) => v?.sprintId);
-
-    // Try agile API to get sprint ID
-    const boardsRes = await jiraAgileFetch(cloudId, accessToken, `/board?projectKeyOrId=${PROJECT_KEY}&type=scrum`);
-    console.log("[jira] boards:", JSON.stringify(boardsRes?.values?.map((b: any) => ({ id: b.id, name: b.name }))));
-    const board = boardsRes?.values?.[0];
-    if (!board) {
-      console.log("[jira] No board found for project", PROJECT_KEY);
+    const sprintId = await getActiveSprintId(cloudId, accessToken);
+    if (!sprintId) {
+      console.log("[jira] No active sprint found, skipping sprint assignment");
       return;
     }
 
-    const sprintsRes = await jiraAgileFetch(cloudId, accessToken, `/board/${board.id}/sprint?state=active`);
-    console.log("[jira] sprints:", JSON.stringify(sprintsRes?.values?.map((s: any) => ({ id: s.id, name: s.name }))));
-    const sprint = sprintsRes?.values?.[0];
-    if (!sprint) {
-      console.log("[jira] No active sprint found");
-      return;
-    }
-
-    await jiraAgileFetch(cloudId, accessToken, `/sprint/${sprint.id}/issue`, {
+    // Use the agile API to move the issue into the sprint
+    await jiraAgileFetch(cloudId, accessToken, `/sprint/${sprintId}/issue`, {
       method: "POST",
       body: JSON.stringify({ issues: [issueKey] }),
     });
-    console.log(`[jira] Added ${issueKey} to sprint ${sprint.id} (${sprint.name})`);
+    console.log(`[jira] Added ${issueKey} to sprint ${sprintId}`);
   } catch (err) {
     console.error("[jira] addToActiveSprint failed (non-fatal):", err);
   }
